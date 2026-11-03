@@ -40,9 +40,18 @@ class MainActivity : ComponentActivity() {
     private val googleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
-            val idToken = task.getResult(com.google.android.gms.common.api.ApiException::class.java).idToken
-            googleResult?.invoke(idToken)
-        } catch (_: Exception) { googleResult?.invoke(null) }
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            val idToken = account.idToken
+            if (idToken.isNullOrBlank()) {
+                googleResult?.invoke("Google returned no ID token. Check that the Web client ID is configured in Firebase.")
+            } else {
+                googleResult?.invoke(idToken)
+            }
+        } catch (e: com.google.android.gms.common.api.ApiException) {
+            googleResult?.invoke("Google sign-in error (code ${e.statusCode}): ${e.statusMessage ?: e.localizedMessage ?: "Unknown error"}")
+        } catch (e: Exception) {
+            googleResult?.invoke("Google sign-in failed: ${e.localizedMessage ?: e.javaClass.simpleName}")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
