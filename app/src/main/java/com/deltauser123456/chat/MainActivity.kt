@@ -30,6 +30,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -135,6 +136,16 @@ private fun ChatScreen(email: String, db: FirebaseFirestore, uid: String, onSign
     var active by remember { mutableStateOf<ChatItem?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(uid, email) {
+        val profile = mapOf(
+            "email" to email,
+            "emailLower" to email.trim().lowercase(),
+            "updatedAt" to System.currentTimeMillis()
+        )
+        db.collection("users").document(uid).set(profile, SetOptions.merge())
+            .addOnFailureListener { error = "Couldn't save your account profile: ${it.localizedMessage}" }
+    }
+
     DisposableEffect(uid) {
         val registration = db.collection("chats").whereArrayContains("participantUIDs", uid)
             .addSnapshotListener { snap, e ->
@@ -167,10 +178,10 @@ private fun ChatScreen(email: String, db: FirebaseFirestore, uid: String, onSign
             error = null
             val otherEmail = target.trim().lowercase()
             if (otherEmail == email.lowercase()) { error = "Enter someone else's email."; return@Button }
-            db.collection("users").whereEqualTo("email", otherEmail).limit(1).get()
+            db.collection("users").whereEqualTo("emailLower", otherEmail).limit(1).get()
                 .addOnSuccessListener { result ->
                     val other = result.documents.firstOrNull()
-                    if (other == null) { error = "No account found with that email."; return@addOnSuccessListener }
+                    if (other == null) { error = "No account found with that email. Ask them to open the app once."; return@addOnSuccessListener }
                     val ids = listOf(uid, other.id).sorted()
                     db.collection("chats").whereArrayContains("participantUIDs", uid).get()
                         .addOnSuccessListener { existing ->
