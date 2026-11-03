@@ -238,6 +238,7 @@ private fun ConversationScreen(chat: ChatItem, db: FirebaseFirestore, uid: Strin
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
             Text(chat.email, color = Color.White, style = MaterialTheme.typography.titleLarge)
         }
+        ChatCallButtons(chat.id)
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), reverseLayout = false) {
             items(messages) { msg ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.sender == uid) Arrangement.End else Arrangement.Start) {
