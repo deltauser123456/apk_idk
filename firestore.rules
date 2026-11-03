@@ -6,11 +6,18 @@ service cloud.firestore {
       return signedIn() &&
         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantUIDs;
     }
+    function otherMember(chatId, uid) {
+      return uid is string &&
+        uid != request.auth.uid &&
+        uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantUIDs;
+    }
+
     match /users/{uid} {
       allow read: if signedIn();
       allow create, update: if signedIn() && request.auth.uid == uid &&
         request.resource.data.email == request.auth.token.email;
     }
+
     match /chats/{chatId} {
       allow read: if signedIn() && request.auth.uid in resource.data.participantUIDs;
       allow create: if signedIn() &&
@@ -19,6 +26,7 @@ service cloud.firestore {
         request.auth.uid in request.resource.data.participantUIDs;
       allow update: if signedIn() && request.auth.uid in resource.data.participantUIDs;
       allow delete: if false;
+
       match /messages/{messageId} {
         allow read: if member(chatId);
         allow create: if member(chatId) &&
@@ -27,6 +35,32 @@ service cloud.firestore {
           request.resource.data.text.size() > 0 &&
           request.resource.data.text.size() <= 4000;
         allow update, delete: if false;
+      }
+
+      match /calls/{callId} {
+        allow read: if member(chatId);
+        allow create: if member(chatId) &&
+          request.resource.data.keys().hasOnly([
+            'callerUID', 'calleeUID', 'status', 'type', 'roomName', 'createdAt'
+          ]) &&
+          request.resource.data.callerUID == request.auth.uid &&
+          otherMember(chatId, request.resource.data.calleeUID) &&
+          request.resource.data.status == 'ringing' &&
+          request.resource.data.type in ['audio', 'video'] &&
+          request.resource.data.roomName == 'chat_' + chatId &&
+          request.resource.data.createdAt == request.time;
+        allow update: if member(chatId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+          request.resource.data.updatedAt == request.time &&
+          (
+            (request.auth.uid == resource.data.calleeUID &&
+              resource.data.status == 'ringing' &&
+              request.resource.data.status in ['accepted', 'declined']) ||
+            (request.auth.uid == resource.data.callerUID &&
+              resource.data.status in ['ringing', 'accepted'] &&
+              request.resource.data.status == 'ended')
+          );
+        allow delete: if false;
       }
     }
   }
