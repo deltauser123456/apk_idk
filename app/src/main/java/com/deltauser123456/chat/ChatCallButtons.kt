@@ -1,10 +1,14 @@
 package com.deltauser123456.chat
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.google.firebase.firestore.FirebaseFirestore
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 
 @Composable
@@ -17,22 +21,43 @@ fun ChatCallButtons(chatId: String) {
     var muted by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
 
-    TextButton(onClick = {
-        video = false
+    fun connectNow(useVideo: Boolean) {
+        video = useVideo
         scope.launch {
-            try { session.connect(chatId, false); connected = true; status = "Connected" }
-            catch (e: Exception) { status = e.localizedMessage ?: "Call failed" }
+            try {
+                session.connect(chatId, useVideo)
+                connected = true
+                status = "Connected"
+            } catch (e: Exception) {
+                status = e.localizedMessage ?: "Call failed"
+            }
         }
-    }, enabled = !connected) { Text("Voice call") }
+    }
 
-    TextButton(onClick = {
-        video = true
-        scope.launch {
-            try { session.connect(chatId, true); connected = true; status = "Connected" }
-            catch (e: Exception) { status = e.localizedMessage ?: "Call failed" }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants[Manifest.permission.RECORD_AUDIO] == true &&
+            (!video || grants[Manifest.permission.CAMERA] == true)) {
+            connectNow(video)
+        } else {
+            status = "Allow microphone permission; video calls also need camera permission."
         }
-    }, enabled = !connected) { Text("Video call") }
+    }
 
+    fun requestPermissions(useVideo: Boolean) {
+        video = useVideo
+        val needed = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (useVideo) needed.add(Manifest.permission.CAMERA)
+        val missing = needed.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) connectNow(useVideo)
+        else permissionLauncher.launch(missing.toTypedArray())
+    }
+
+    TextButton(onClick = { requestPermissions(false) }, enabled = !connected) { Text("Voice call") }
+    TextButton(onClick = { requestPermissions(true) }, enabled = !connected) { Text("Video call") }
     if (connected) {
         TextButton(onClick = {
             scope.launch { session.setMuted(!muted); muted = !muted }
