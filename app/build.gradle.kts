@@ -39,6 +39,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
+    // LiveKit real-time audio/video rooms
+    implementation("io.livekit:livekit-android:2.30.0")
+
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("androidx.credentials:credentials:1.3.0")
 }
