@@ -17,6 +17,7 @@ import java.net.URL
 class CallSession(context: Context) {
     private val appContext = context.applicationContext
     private var room: Room? = null
+    val currentRoom: Room? get() = room
 
     suspend fun connect(chatId: String, video: Boolean): Room = withContext(Dispatchers.IO) {
         val user = FirebaseAuth.getInstance().currentUser
