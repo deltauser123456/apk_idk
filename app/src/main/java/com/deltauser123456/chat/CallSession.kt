@@ -1,6 +1,7 @@
 package com.deltauser123456.chat
 
 import android.content.Context
+import android.media.AudioManager
 import com.google.firebase.auth.FirebaseAuth
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
@@ -17,6 +18,7 @@ import java.net.URL
 class CallSession(context: Context) {
     private val appContext = context.applicationContext
     private var room: Room? = null
+    private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     val currentRoom: Room? get() = room
 
     suspend fun connect(chatId: String, video: Boolean): Room = withContext(Dispatchers.IO) {
@@ -43,6 +45,10 @@ class CallSession(context: Context) {
                 throw IllegalStateException(message)
             }
             val json = JSONObject(body)
+            // Route call audio through the phone speaker at communication volume.
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+            @Suppress("DEPRECATION")
+            run { audioManager.isSpeakerphoneOn = true }
             val liveRoom = LiveKit.create(appContext)
             liveRoom.connect(json.getString("serverUrl"), json.getString("token"))
             liveRoom.localParticipant.setMicrophoneEnabled(true)
@@ -65,6 +71,9 @@ class CallSession(context: Context) {
     suspend fun disconnect() {
         room?.disconnect()
         room = null
+        @Suppress("DEPRECATION")
+        run { audioManager.isSpeakerphoneOn = false }
+        audioManager.mode = AudioManager.MODE_NORMAL
     }
 
     private suspend fun com.google.android.gms.tasks.Task<com.google.firebase.auth.GetTokenResult>.awaitToken(): String =
