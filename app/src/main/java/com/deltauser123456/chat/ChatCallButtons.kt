@@ -5,6 +5,14 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import io.livekit.android.compose.state.rememberTracks
+import io.livekit.android.compose.ui.VideoTrackView
+import io.livekit.android.room.track.Track
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -90,7 +98,16 @@ fun ChatCallButtons(chatId: String) {
             .addOnFailureListener { status = it.localizedMessage ?: "Could not send call invitation"; busy = false }
     }
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (connected && video) {
+            val room = session.currentRoom
+            if (room != null) {
+                val tracks = rememberTracks(sources = listOf(Track.Source.CAMERA), passedRoom = room).value
+                tracks.forEach { trackRef ->
+                    VideoTrackView(trackReference = trackRef, room = room, modifier = Modifier.fillMaxWidth().height(220.dp))
+                }
+            }
+        }
         Row {
             TextButton(onClick = { startCall(false) }, enabled = !connected && !busy) { Text("Voice call") }
             TextButton(onClick = { startCall(true) }, enabled = !connected && !busy) { Text("Video call") }
