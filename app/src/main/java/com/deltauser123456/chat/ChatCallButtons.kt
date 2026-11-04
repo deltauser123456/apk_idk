@@ -4,24 +4,25 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import io.livekit.android.compose.state.rememberTracks
-import io.livekit.android.compose.ui.VideoTrackView
-import io.livekit.android.room.track.Track
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import io.livekit.android.compose.state.rememberTracks
+import io.livekit.android.compose.ui.VideoTrackView
+import io.livekit.android.room.track.Track
 import kotlinx.coroutines.launch
 
 @Composable
@@ -103,8 +104,30 @@ fun ChatCallButtons(chatId: String) {
             val room = session.currentRoom
             if (room != null) {
                 val tracks = rememberTracks(sources = listOf(Track.Source.CAMERA), passedRoom = room, onlySubscribed = false).value
-                tracks.forEach { trackRef ->
-                    VideoTrackView(trackReference = trackRef, room = room, modifier = Modifier.fillMaxWidth().height(220.dp))
+                val localTrack = tracks.firstOrNull { it.participant.identity == room.localParticipant.identity }
+                val remoteTracks = tracks.filter { it.participant.identity != room.localParticipant.identity }
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(360.dp)
+                        .clip(RoundedCornerShape(18.dp)).background(Color.Black)
+                ) {
+                    val mainTrack = remoteTracks.firstOrNull()
+                    if (mainTrack != null) {
+                        VideoTrackView(trackReference = mainTrack, room = room, modifier = Modifier.fillMaxSize())
+                    } else {
+                        Text("Waiting for the other camera…", color = Color.White, modifier = Modifier.align(Alignment.Center))
+                    }
+                    if (localTrack != null) {
+                        VideoTrackView(
+                            trackReference = localTrack,
+                            room = room,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+                                .width(112.dp).height(156.dp).clip(RoundedCornerShape(14.dp))
+                        )
+                    }
+                    TextButton(
+                        onClick = { session.switchCamera() },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
+                    ) { Text("Flip camera", color = Color.White) }
                 }
             }
         }
