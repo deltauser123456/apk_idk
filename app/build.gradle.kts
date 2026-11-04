@@ -41,6 +41,7 @@ dependencies {
 
     // LiveKit real-time audio/video rooms
     implementation("io.livekit:livekit-android:2.30.0")
+    implementation("io.livekit:livekit-android-compose-components:2.4.2")
 
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("androidx.credentials:credentials:1.3.0")
