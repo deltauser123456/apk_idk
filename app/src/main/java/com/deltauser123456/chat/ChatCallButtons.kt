@@ -102,7 +102,7 @@ fun ChatCallButtons(chatId: String) {
         if (connected && video) {
             val room = session.currentRoom
             if (room != null) {
-                val tracks = rememberTracks(sources = listOf(Track.Source.CAMERA), passedRoom = room).value
+                val tracks = rememberTracks(sources = listOf(Track.Source.CAMERA), passedRoom = room, onlySubscribed = false).value
                 tracks.forEach { trackRef ->
                     VideoTrackView(trackReference = trackRef, room = room, modifier = Modifier.fillMaxWidth().height(220.dp))
                 }
