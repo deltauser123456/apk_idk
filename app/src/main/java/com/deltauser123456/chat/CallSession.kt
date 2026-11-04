@@ -5,6 +5,9 @@ import android.media.AudioManager
 import com.google.firebase.auth.FirebaseAuth
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
+import io.livekit.android.room.track.CameraPosition
+import io.livekit.android.room.track.LocalVideoTrack
+import io.livekit.android.room.track.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -45,7 +48,6 @@ class CallSession(context: Context) {
                 throw IllegalStateException(message)
             }
             val json = JSONObject(body)
-            // Route call audio through the phone speaker at communication volume.
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
             @Suppress("DEPRECATION")
             run { audioManager.isSpeakerphoneOn = true }
@@ -58,6 +60,17 @@ class CallSession(context: Context) {
         } finally {
             http.disconnect()
         }
+    }
+
+    fun switchCamera() {
+        val track = room?.localParticipant
+            ?.getTrackPublication(Track.Source.CAMERA)?.track as? LocalVideoTrack ?: return
+        val nextPosition = when (track.options.position) {
+            CameraPosition.FRONT -> CameraPosition.BACK
+            CameraPosition.BACK -> CameraPosition.FRONT
+            else -> null
+        }
+        track.switchCamera(position = nextPosition)
     }
 
     suspend fun setMuted(muted: Boolean) {
